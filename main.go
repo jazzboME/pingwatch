@@ -30,6 +30,7 @@ func main() {
 	pinger, err := probing.NewPinger(host)
 	pinger.SetPrivileged(true)
 	pinger.Debug = true
+	pinger.RecordRtts = false
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
@@ -115,7 +116,7 @@ func main() {
 				stats.MinRtt, stats.AvgRtt, stats.MaxRtt, stats.StdDevRtt)
 		}
 
-		log.Printf("\n--- %s ping statistics ---\n", stats.Addr)
+		log.Printf("--- %s ping statistics ---\n", stats.Addr)
 		log.Printf("%d packets transmitted, %d packets received, %d duplicates, %v%% packet loss\n",
 			stats.PacketsSent, stats.PacketsRecv, stats.PacketsRecvDuplicates, stats.PacketLoss)
 		log.Printf("round-trip min/avg/max/stddev = %v/%v/%v/%v\n",
