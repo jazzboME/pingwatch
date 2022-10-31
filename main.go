@@ -18,7 +18,7 @@ type pktStat struct {
 }
 
 var curPinging bool
-var lastRecv, lastSend pktStat
+var lastRecv, lastSend, lastBreak pktStat
 var curPingRun int
 var bar *progressbar.ProgressBar
 
@@ -37,6 +37,7 @@ func main() {
 
 	lastRecv.seq = -2
 	lastRecv.time = time.Now()
+	lastBreak.time = time.Now()
 
 	bar = progressbar.NewOptions(-1,
 		progressbar.OptionSetDescription("pingwatch"),
@@ -65,8 +66,10 @@ func main() {
 				bar.Set(0)
 				bar.Reset()
 			}
-			log.Printf("%s: Restoring after ping break from %d to %d (%s).\n",
-				prettyTime(curTime), lastRecv.seq, pkt.Seq, duration)
+			log.Printf("Restoring after ping break from %d to %d (%s).\n",
+					lastRecv.seq, pkt.Seq, duration)
+			lastBreak.seq = pkt.Seq
+			lastBreak.time = curTime
 		}
 		if lastRecv.seq > pkt.Seq {
 			curPingRun = 0
@@ -76,8 +79,8 @@ func main() {
 				bar.Set(0)
 				bar.Reset()
 			}
-			log.Printf("%s: Received out of sequence ping, %d after %d.\n",
-				prettyTime(time.Now()), pkt.Seq, lastRecv.seq)
+			log.Printf("Received out of sequence ping, %d after %d.\n",
+				pkt.Seq, lastRecv.seq)
 		}
 		if lastRecv.seq == pkt.Seq-1 {
 			curPingRun++
@@ -90,11 +93,14 @@ func main() {
 
 	pinger.OnSend = func(pkt *probing.Packet) {
 		curTime := time.Now()
+		duration := curTime.Sub(lastBreak.time)
 		if (pkt.Seq > lastRecv.seq+1) && curPinging {
 			if !(*silent) {
-				fmt.Printf("\n%s: Sending but not receiving.\n", prettyTime(curTime))
+				fmt.Printf("\n%s: Sending but not receiving after continued connectivity of %s.\n", 
+					prettyTime(curTime), duration)
 			}
-			log.Printf("%s: Sending but not receiving.\n", prettyTime(curTime))
+			log.Printf("Sending but not receiving after continued connectivity of %s\n", 
+					duration)
 			curPinging = false
 		}
 		lastSend = pktStat{seq: pkt.Seq, time: curTime}
